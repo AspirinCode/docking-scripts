@@ -64,19 +64,19 @@ def main(sys, type ):
                         ci_best_aucs[x]=alllowci[x]
                 else:
                     ci_best_aucs[x]=alllowci[x]
-    ohandle=open('%s_auc_ci.txt' % sys, 'w')
+    ohandle=open('%s_%s_auc_ci.txt' % (sys, type), 'w')
     for key in sorted(allaucs.keys()):
         ohandle.write('%s\t%s\t%s\t%s\n' % (key, allaucs[key], alllowci[key],
             allhici[key]))
     print "CI best %s AUCs" % ligand
-    numpy.savetxt('%s_ci_best_aucs.txt' % sys, [i for i in set(ci_best_aucs.keys())],
+    numpy.savetxt('%s_%s_ci_best_aucs.txt' % (sys, type), [i for i in set(ci_best_aucs.keys())],
             fmt='%i')
     print len(ci_best_aucs.keys()), set(ci_best_aucs.keys()), [ci_best_aucs[j]
             for j in ci_best_aucs.keys()]
     print "best %s AUCs" % ligand
     print len(best_aucs.keys()), set(best_aucs.keys()), [best_aucs[j] for j in
             best_aucs.keys()]
-    numpy.savetxt('%s_best_aucs.txt' % sys, [i for i in set(best_aucs.keys())], fmt='%i')
+    numpy.savetxt('%s_%s_best_aucs.txt' % (sys, type), [i for i in set(best_aucs.keys())], fmt='%i')
     
 def parse_commandline():
     parser = optparse.OptionParser()
