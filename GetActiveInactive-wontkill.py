@@ -1,10 +1,47 @@
 from fitting import *
+import random
 import optparse
 import pylab
 import numpy
 import os
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 from numpy import linalg
+
+font = {'family' : 'sans-serif',
+        'sans-serif':['Helvetica'],
+                        'size'   : 16}
+
+pylab.rcParams['lines.linewidth'] = 2
+
+pylab.rc('font', **font)
+params = {'legend.fontsize': 14,
+          'legend.linewidth': 2}
+pylab.rcParams.update(params)
+def bootstrap(  b, n ):
+    #Randomly divide n data points into b blocks.
+    s = [ random.randint( 0, n-1 ) for t in xrange(0, b) ]
+    return numpy.array(s)
+
+def wrapper(func, args):
+    c, p=func(*args)
+    return c,p
+
+def get_fried(data):
+    chis=[]
+    pvals=[]
+    cutoff=20
+    for x in range(0,10):
+        subsamples=dict()
+        for key in data.keys():
+            indices=bootstrap( cutoff, len(data[key]))
+            subsamples[key]=data[key][indices]
+        chi2, pval=wrapper(stats.friedmanchisquare, [subsamples[key] for key in subsamples.keys()])
+        chis.append(chi2)
+        pvals.append(pval)
+    print "average chi2 %s+/%s:" % (numpy.mean(chis), numpy.std(chis))
+    print "average pval %s+/-%s:" % (numpy.mean(pvals), numpy.std(pvals))
+    return numpy.mean(chis), numpy.std(chis), numpy.mean(pvals), numpy.std(pvals)
+
 
 def op_path(op, name, op_scores, score):
     test=sorted(op_scores[name].keys())
@@ -49,8 +86,15 @@ def get_scores():
 
 def main(aucname):
     systems=['bi', 'car', 'apo']
-    labels=['agonist-bound', 'inv. agonist-bound', 'apo']
+    labels=['Agonist-bound', 'Inv. Agonist-bound', 'Apo']
+    auclabels=dict()
+    auclabels['types']='Discrimination'
+    auclabels['antagonist']='Antagonist'
+    auclabels['agonist']='Agonist'
+
     formats=['ro', 'bo', 'ko']
+    allvalues=dict()
+    allscores=dict()
     for (sys, label, format) in zip(systems, labels, formats):
         dir='./%s/structural-data/' % sys
         pops=numpy.loadtxt('%s/Populations.dat' % dir)
@@ -94,6 +138,11 @@ def main(aucname):
                 if location.size:
                     all_aucs[i].append(aucs[location][0])
                     ops[i].append(score[m])
+                    if score[m] not in allscores.keys():
+                        allscores[score[m]]=[]
+                        allscores[score[m]].append(aucs[location][0])
+                    else:
+                        allscores[score[m]].append(aucs[location][0])
         print "building score hist"
         histo=dict()
         for path in sorted(ops.keys()):
@@ -113,18 +162,43 @@ def main(aucname):
         values=numpy.array(values)
         scores=numpy.array(scores)
         slope, intercept, R, pval, std_err = stats.linregress(scores,  values)
+        allvalues[sys]=values
         print sys, R, pval
+        if pval< 0.0001:
+            pval=0.0001
         pylab.figure()
         pylab.plot(scores, values, format)
         (ar,br)=polyfit(scores, values, 1)
         xr=polyval([ar,br], scores)
-        pylab.plot(scores,xr,'%s-' % format[0])
+        pylab.plot(scores,xr,'%s-' % format[0], label='R=%s, pval=%s' %
+                (round(R,2), round(pval,4)))
         #a, b, sa, sb, rchi2, dof=linear_fit(numpy.array(sorted(histo.keys())), avgs, stds)
-        pylab.ylim(0.3, 0.9)
+        if aucname=='types':
+            pylab.plot(range(0, 15), [0.5]*len(range(0,15)), 'k--', label='Random Disc.')
+            pylab.ylim(0.3, 0.9)
+        else:
+            pylab.ylim(0.5, 1.0)
         pylab.xlim(0, 15)
-        pylab.xlabel('progress towards active')
-        pylab.ylabel('%s %s aucs' % (sys, aucname))
-        pylab.show()
+        lg=pylab.legend()
+        lg.draw_frame(False)
+        pylab.title('%s States' % label)
+        pylab.xticks(range(0, 15), [' ']*2+ ['inactive']+[' ']*(len(range(0,15))-6)+['active']+[' ']*2)
+        pylab.xlabel('Pathway Progress')
+        pylab.ylabel('%s Aucs' % (auclabels[aucname]))
+        pylab.savefig('%s_%saucs.png' % (sys, aucname), dpi=300)
+    print "on ligand condition and AUCS"
+    chi2, chi2_s, pval, pval_s=get_fried(allvalues)
+    newscores=dict()
+    newscores[1]=numpy.array(allscores[1])
+    newscores[2]=numpy.array(allscores[2])
+    newscores[3]=numpy.array(allscores[3])
+    newscores[4]=numpy.array(allscores[4])
+    newscores[5]=numpy.array(allscores[5])
+    newscores[6]=numpy.array(allscores[6]+allscores[7])
+    newscores[8]=numpy.array(allscores[8])
+    newscores[11]=numpy.array(allscores[9]+allscores[11]+allscores[12])
+    print "on pathway score and AUCS"
+    chi2, chi2_s, pval, pval_s=get_fried(newscores)
 
 
 def parse_commandline():
