@@ -23,9 +23,9 @@ pylab.rcParams.update(params)
 systems=['bi', 'car', 'apo']
 labels=['Agonist-bound', 'Inv. Agonist-bound', 'Apo']
 auclabels=dict()
-auclabels['types']='      Discrimination'
-auclabels['antagonist']='Antagonist'
-auclabels['agonist']='Agonist'
+auclabels['types']='          Agonist vs. Antag.'
+auclabels['antagonist']='       Antag. vs. Decoy'
+auclabels['agonist']='       Agonist vs. Decoy'
 
 
 aucnames=['agonist', 'antagonist', 'types'] 
