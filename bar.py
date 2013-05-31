@@ -96,5 +96,6 @@ ax2.yaxis.set_ticks(numpy.arange(0.4, 1.0))
 ax2.yaxis.set_ticklabels(['   '*6])
 ax2.xaxis.set_ticks(range(0, 3))
 ax2.xaxis.set_ticklabels(['   ', auclabels[aucnames[2]], ' '])
+pylab.savefig('ligand_state_aucs.png', dpi=300)
 pylab.show()
 

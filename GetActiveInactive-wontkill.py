@@ -7,6 +7,18 @@ import os
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 from numpy import linalg
 
+#bi path score samples
+#[10,   1,     2,   4,   8,   3,                5]
+#[2.0, 3.0,   5.0, 6.0, 7.0, 8.0,              12.0]
+
+#car path score samples
+#[39, 15,  14,     19,   5,   20,   3,   4]
+#[2.0, 3.0,4.0,     6.0, 7.0, 8.0,   9.0, 11.0]
+
+#apo path score samples
+#[23,  108, 150, 71,  21,  7,        21,   20]
+#[1.0, 2.0, 3.0, 4.0, 5.0, 6.0,      8.0,  9.0]
+
 font = {'family' : 'sans-serif',
         'sans-serif':['Helvetica'],
                         'size'   : 16}
@@ -22,9 +34,89 @@ def bootstrap(  b, n ):
     s = [ random.randint( 0, n-1 ) for t in xrange(0, b) ]
     return numpy.array(s)
 
+def bar_progress(data, aucname):
+    systems=['bi', 'car', 'apo']
+    colors=['red', 'blue', 'grey' ]
+    names=['inactive', 'inter1', 'inter2', 'active']
+    index=0
+    fig=pylab.figure(figsize=(8,6))
+    #gs=gridspec.GridSpec(1, 2, width_ratios=[2,1])
+    ax1=fig.add_subplot(311, aspect=5)
+    ax2=fig.add_subplot(312, aspect=5)
+    ax3=fig.add_subplot(313, aspect=5)
+    ax=[ax1, ax2, ax3]
+    width=0.8
+    for (n, sys) in enumerate(systems):
+        avgs=[]
+        errs=[]
+        for key in names:
+            avgs.append(numpy.mean(data[sys][key])) 
+            errs.append(numpy.std(data[sys][key]))
+        print avgs, errs
+        ax[n].bar(left=range(0, len(names)), height=avgs,  alpha=0.5, width=width, yerr=errs,  ecolor='k')
+    if aucname=='types':
+        limits=(0.4,1.0)
+    else:
+        limits=(0.6,1.0)
+    ax1.set_ylim(limits[0], limits[1])
+    ax2.set_ylim(limits[0], limits[1])
+    ax3.set_ylim(limits[0], limits[1])
+    pylab.setp( ax1.get_xticklabels(), visible=False)
+    pylab.setp( ax2.get_xticklabels(), visible=False)
+    #ax1.set_ylabel('AUCs')
+    ax1.yaxis.set_ticks(numpy.arange(0.6,1.05,0.1))
+    ax2.yaxis.set_ticks(numpy.arange(0.6,1.05,0.1))
+    ax3.yaxis.set_ticks(numpy.arange(0.6,1.05,0.1))
+    ax3.xaxis.set_ticks(numpy.arange(0,4))
+    ax3.xaxis.set_ticklabels(['Inactive', ' ', ' ', 'Active'])
+    pylab.show()
+
+def modify_scores(allscores):
+    combine_inds=dict()
+    combine_inds['bi']=[[2], [3, 5,6],[7,8], [12,]] 
+    combine_inds['car']=[[2,], [3,4,6],[7,8], [9,11]] 
+    combine_inds['apo']=[[1,2], [3,4,5,6],[8,], [9]] 
+    newscores=dict()
+    for sys in ['bi', 'car', 'apo']:
+        newscores[sys]=dict()
+        names=['inactive', 'inter1', 'inter2', 'active']
+        print sys
+        for (n,int) in enumerate(combine_inds[sys]):
+            print names[n]
+            if names[n] not in newscores[sys].keys():
+                newscores[sys][names[n]]=[]
+            for i in int:
+                for val in allscores[sys][i]:
+                    newscores[sys][names[n]].append(val)
+    return newscores
+
 def wrapper(func, args):
     c, p=func(*args)
     return c,p
+
+def plot_fits(scores, values, R, pval, format, aucname):
+    if pval< 0.0001:
+        pval=0.0001
+    pylab.figure()
+    pylab.plot(scores, values, format)
+    (ar,br)=polyfit(scores, values, 1)
+    xr=polyval([ar,br], scores)
+    pylab.plot(scores,xr,'%s-' % format[0], label='R=%s, pval=%s' %
+            (round(R,2), round(pval,4)))
+    #a, b, sa, sb, rchi2, dof=linear_fit(numpy.array(sorted(histo.keys())), avgs, stds)
+    if aucname=='types':
+        pylab.plot(range(0, 15), [0.5]*len(range(0,15)), 'k--', label='Random Disc.')
+        pylab.ylim(0.3, 0.9)
+    else:
+        pylab.ylim(0.5, 1.0)
+    pylab.xlim(0, 15)
+    lg=pylab.legend()
+    lg.draw_frame(False)
+    pylab.title('%s States' % label)
+    pylab.xticks(range(0, 15), [' ']*2+ ['inactive']+[' ']*(len(range(0,15))-6)+['active']+[' ']*2)
+    pylab.xlabel('Pathway Progress')
+    pylab.ylabel('%s Aucs' % (auclabels[aucname]))
+    pylab.savefig('%s_%saucs.png' % (sys, aucname), dpi=300)
 
 def get_fried(data):
     chis=[]
@@ -96,6 +188,7 @@ def main(aucname):
     allvalues=dict()
     allscores=dict()
     for (sys, label, format) in zip(systems, labels, formats):
+        allscores[sys]=dict()
         dir='./%s/structural-data/' % sys
         pops=numpy.loadtxt('%s/Populations.dat' % dir)
         types=['path', 'new-path']
@@ -138,11 +231,11 @@ def main(aucname):
                 if location.size:
                     all_aucs[i].append(aucs[location][0])
                     ops[i].append(score[m])
-                    if score[m] not in allscores.keys():
-                        allscores[score[m]]=[]
-                        allscores[score[m]].append(aucs[location][0])
+                    if score[m] not in allscores[sys].keys():
+                        allscores[sys][score[m]]=[]
+                        allscores[sys][score[m]].append(aucs[location][0])
                     else:
-                        allscores[score[m]].append(aucs[location][0])
+                        allscores[sys][score[m]].append(aucs[location][0])
         print "building score hist"
         histo=dict()
         for path in sorted(ops.keys()):
@@ -162,43 +255,18 @@ def main(aucname):
         values=numpy.array(values)
         scores=numpy.array(scores)
         slope, intercept, R, pval, std_err = stats.linregress(scores,  values)
-        allvalues[sys]=values
         print sys, R, pval
-        if pval< 0.0001:
-            pval=0.0001
-        pylab.figure()
-        pylab.plot(scores, values, format)
-        (ar,br)=polyfit(scores, values, 1)
-        xr=polyval([ar,br], scores)
-        pylab.plot(scores,xr,'%s-' % format[0], label='R=%s, pval=%s' %
-                (round(R,2), round(pval,4)))
-        #a, b, sa, sb, rchi2, dof=linear_fit(numpy.array(sorted(histo.keys())), avgs, stds)
-        if aucname=='types':
-            pylab.plot(range(0, 15), [0.5]*len(range(0,15)), 'k--', label='Random Disc.')
-            pylab.ylim(0.3, 0.9)
-        else:
-            pylab.ylim(0.5, 1.0)
-        pylab.xlim(0, 15)
-        lg=pylab.legend()
-        lg.draw_frame(False)
-        pylab.title('%s States' % label)
-        pylab.xticks(range(0, 15), [' ']*2+ ['inactive']+[' ']*(len(range(0,15))-6)+['active']+[' ']*2)
-        pylab.xlabel('Pathway Progress')
-        pylab.ylabel('%s Aucs' % (auclabels[aucname]))
-        pylab.savefig('%s_%saucs.png' % (sys, aucname), dpi=300)
-    print "on ligand condition and AUCS"
+        #plot_fits(scores, values, R, pval, format, aucname)
+        allvalues[sys]=values
     chi2, chi2_s, pval, pval_s=get_fried(allvalues)
-    newscores=dict()
-    newscores[1]=numpy.array(allscores[1])
-    newscores[2]=numpy.array(allscores[2])
-    newscores[3]=numpy.array(allscores[3])
-    newscores[4]=numpy.array(allscores[4])
-    newscores[5]=numpy.array(allscores[5])
-    newscores[6]=numpy.array(allscores[6]+allscores[7])
-    newscores[8]=numpy.array(allscores[8])
-    newscores[11]=numpy.array(allscores[9]+allscores[11]+allscores[12])
     print "on pathway score and AUCS"
-    chi2, chi2_s, pval, pval_s=get_fried(newscores)
+    #for sys in systems:
+    #    for s in range(1,13):
+    #      not in allscores[sys].keys():
+    #            allscores[sys][s]=0
+    newscores=modify_scores(allscores)
+    bar_progress(newscores, aucname)
+    #chi2, chi2_s, pval, pval_s=get_fried(newscores)
 
 
 def parse_commandline():
