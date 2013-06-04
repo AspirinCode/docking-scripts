@@ -48,7 +48,12 @@ def get_aggregate(scoredata, aggdata, keys, limit=False):
 
 
 
-def bar_progress(data, auclabels):
+def bar_progress(data):
+    auclabels=dict()
+    auclabels['types']='      Discrimination'
+    auclabels['antagonist']='Antagonist'
+    auclabels['agonist']='Agonist'
+
     systems=['bi', 'car', 'apo']
     labels=['Agonist-bound', 'Inv. Agnonist bound', 'Apo']
     colors=['red', 'blue', 'grey' ]
@@ -137,21 +142,24 @@ def bar_progress(data, auclabels):
     ax3.set_xlabel('Path Progress')
     ax2.set_ylabel('AUCs')
     #ax1.set_ylabel('AUCs')
-    pylab.savefig('types_path_aucs.png', dpi=300)
-    #pylab.show()
+    #pylab.savefig('types_path_aucs.png', dpi=300)
+    pylab.show()
 
 def modify_scores(all, new):
     combine_inds=dict()
-    #combine_inds['bi']=[[2], [3, 5],[6,7], [8,12,]] 
-    #combine_inds['car']=[[2,], [3,4],[6,7], [8, 9,11]] 
-    #combine_inds['apo']=[[1,2], [3,4],[5,6], [8,9]] 
-    combine_inds['bi']=[[2,3], [5, 6,7], [8,12]] 
-    combine_inds['car']=[[2,3 ], [4, 6, 7], [8, 9,11]] 
-    combine_inds['apo']=[[1,2,3 ], [4, 5,6], [8,9]] 
+    combine_inds['bi']=[[2], [3, 5],[6,7], [8,12,]] 
+    combine_inds['car']=[[2,], [3,4],[6,7], [8, 9,11]] 
+    combine_inds['apo']=[[1,2], [3,4],[5,6], [8,9]] 
+    #combine_inds['bi']=[[2,3], [5, 6,7], [8,12]] 
+    #combine_inds['car']=[[2,3 ], [4, 6, 7], [8, 9,11]] 
+    #combine_inds['apo']=[[1,2,3 ], [4, 5,6], [8,9]] 
+    if len(combine_inds['bi'])==3:
+        names=['inactive', 'inter', 'active']
+    elif len(combine_inds['bi'])==4:
+        names=['inactive', 'inter1', 'inter2',  'active']
     new=dict()
     for sys in ['bi', 'car', 'apo']:
         new[sys]=dict()
-        names=['inactive', 'inter', 'active']
         for (n,int) in enumerate(combine_inds[sys]):
             if names[n] not in new[sys].keys():
                 new[sys][names[n]]=[]
@@ -213,14 +221,14 @@ def op_path(op, name, op_scores, score):
                     break
     return score
 
-def get_scores():
+def get_scores(opnum):
     max_score=0
     op_scores=dict()
-    op_scores['h36']=dict()
+    op_scores['h36']=
     op_scores['conn']=dict()
     op_scores['npxxy']=dict()
     op_scores['bulge']=dict()
-    vals=numpy.arange(8, 13,1)
+
     scores=range(0,len(vals))
     max_score+=max(scores)
     for (v,s) in zip(vals, scores):

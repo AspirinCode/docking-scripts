@@ -15,20 +15,17 @@ def main():
     newscores=dict()
     allscores=dict()
     allvalues=dict()
+
+    systems=dict()
     for aucname in aucnames:
         allscores[aucname]=dict()
         allvalues[aucname]=dict()
         newscores[aucname]=dict()
-        systems=['bi', 'car', 'apo']
-        labels=['Agonist-bound', 'Inv. Agonist-bound', 'Apo']
-        formats=['ro', 'bo', 'ko']
-        for (sys, label, format) in zip(systems, labels, formats):
-            allscores[aucname][sys]=dict()
+        ligands=['bi', 'car', 'apo']
+        for sys in ligands:
+            states=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(0,), dtype=int)
             dir='./%s/structural-data/' % sys
             pops=numpy.loadtxt('%s/Populations.dat' % dir)
-            types=['path', 'new-path']
-            type='path'
-            states=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(0,), dtype=int)
             pops=pops[states]
             if sys=='bi':
                 cutoff=min(pops)
@@ -37,10 +34,9 @@ def main():
                 pops=pops[frames]
                 states=states[frames]
             aucs=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(1,))
+            system=SystemDock(sys, states, aucs, pops):
+            systems.append(system)
             paths=open('%s/%s_paths.txt' % (sys, sys))
-            map=numpy.loadtxt('%s/Mapping.dat' % dir)
-            pop=numpy.loadtxt('%s/Populations.dat' % dir)
-            ops=dict()
             all_aucs=dict()
             max_score, op_scores=get_scores()
             print "max score is ", max_score
