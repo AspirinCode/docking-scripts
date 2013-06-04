@@ -221,29 +221,36 @@ def op_path(op, name, op_scores, score):
                     break
     return score
 
-def get_scores(opnum):
+def get_scores(keys):
     max_score=0
-    op_scores=dict()
-    op_scores['h36']=
-    op_scores['conn']=dict()
-    op_scores['npxxy']=dict()
-    op_scores['bulge']=dict()
-
-    scores=range(0,len(vals))
-    max_score+=max(scores)
-    for (v,s) in zip(vals, scores):
-        op_scores['h36'][v]=s
+    ref=dict()
+    vals=numpy.arange(8, 13,1)
+    ref['h36']=vals
     vals=numpy.arange(0.5, 3.0, 0.5)
+    ref['conn']=vals
+    vals=numpy.arange(8, 13,1)
+    ref['npxxy']=vals
+    vals=numpy.arange(0.5, 2.5, 0.5)
+    ref['bulge']=vals
+
+    op_scores=dict()
+    for key in keys:
+        op_scores[key]=dict()
+        scores=range(0,len(ref[key]))
+        max_score+=max(scores)
+        for (v,s) in zip(ref[key], scores):
+            op_scores[key][v]=s
+
     scores=range(0,len(vals))[::-1]
     max_score+=max(scores)
     for (v,s) in zip(vals, scores):
         op_scores['conn'][v]=s
-    vals=numpy.arange(0.5, 2.0, 0.5)
+
     scores=range(0,len(vals))
     max_score+=max(scores)
     for (v,s) in zip(vals, scores):
         op_scores['npxxy'][v]=s
-    vals=numpy.arange(0.5, 2.5, 0.5)
+
     scores=range(0,len(vals))[::-1]
     max_score+=max(scores)
     for (v,s) in zip(vals, scores):
