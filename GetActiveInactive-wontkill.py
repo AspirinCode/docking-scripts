@@ -7,17 +7,6 @@ import os
 from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 from numpy import linalg
 
-#bi path score samples
-#[10,   1,     2,   4,   8,   3,                5]
-#[2.0, 3.0,   5.0, 6.0, 7.0, 8.0,              12.0]
-
-#car path score samples
-#[39, 15,  14,     19,   5,   20,   3,   4]
-#[2.0, 3.0,4.0,     6.0, 7.0, 8.0,   9.0, 11.0]
-
-#apo path score samples
-#[23,  108, 150, 71,  21,  7,        21,   20]
-#[1.0, 2.0, 3.0, 4.0, 5.0, 6.0,      8.0,  9.0]
 
 font = {'family' : 'sans-serif',
         'sans-serif':['Helvetica'],
@@ -34,11 +23,36 @@ def bootstrap(  b, n ):
     s = [ random.randint( 0, n-1 ) for t in xrange(0, b) ]
     return numpy.array(s)
 
+def get_aggregate(scoredata, aggdata, keys, limit=False):
+    if limit==True:
+        print "only getting aggregate ligand data"
+        systems=['bi', 'car']
+    else:
+        systems=['bi', 'car', 'apo']
+    for s in systems:
+        for key in keys:
+            try: 
+                test=int(key)
+                if test>=9:
+                    key=9
+            except ValueError:
+                pass
+            if key in scoredata[s].keys():
+                for val in scoredata[s][key]:
+                    if key not in aggdata.keys():
+                        aggdata[key]=[]
+                    aggdata[key].append(val)
+            else:
+                pass
+    return aggdata, aggdata.keys()
+
+
+
 def bar_progress(data, auclabels):
     systems=['bi', 'car', 'apo']
     labels=['Agonist-bound', 'Inv. Agnonist bound', 'Apo']
     colors=['red', 'blue', 'grey' ]
-    names=['inactive', 'inter1', 'inter2', 'active']
+    names=['inactive', 'inter', 'active']
     index=0
     fig=pylab.figure(figsize=(8,6))
     #gs=gridspec.GridSpec(1, 2, width_ratios=[2,1])
@@ -112,7 +126,7 @@ def bar_progress(data, auclabels):
                 width=width, yerr=errs, color=colors[n], ecolor='k')
         ax[count].set_ylim(limits[0], limits[1])
         ax[count].yaxis.set_ticks(numpy.arange(limits[0],limits[1]+0.05,0.1))
-        ax[count].xaxis.set_ticks(numpy.arange(0,4))
+        ax[count].xaxis.set_ticks(numpy.arange(0,3))
         ax[count].xaxis.set_ticklabels([' ', 'Inactive',  ' ', 'Active'])
         count+=1
     pylab.text(0.5, 1.15, 'Agonist vs. Inv. Ag.',
@@ -126,20 +140,23 @@ def bar_progress(data, auclabels):
     pylab.savefig('types_path_aucs.png', dpi=300)
     #pylab.show()
 
-def modify_scores(allscores, new):
+def modify_scores(all, new):
     combine_inds=dict()
-    combine_inds['bi']=[[2], [3, 5],[6,7], [8,12,]] 
-    combine_inds['car']=[[2,], [3,4],[6,7], [8, 9,11]] 
-    combine_inds['apo']=[[1,2], [3,4],[5,6], [8,9]] 
+    #combine_inds['bi']=[[2], [3, 5],[6,7], [8,12,]] 
+    #combine_inds['car']=[[2,], [3,4],[6,7], [8, 9,11]] 
+    #combine_inds['apo']=[[1,2], [3,4],[5,6], [8,9]] 
+    combine_inds['bi']=[[2,3], [5, 6,7], [8,12]] 
+    combine_inds['car']=[[2,3 ], [4, 6, 7], [8, 9,11]] 
+    combine_inds['apo']=[[1,2,3 ], [4, 5,6], [8,9]] 
     new=dict()
     for sys in ['bi', 'car', 'apo']:
         new[sys]=dict()
-        names=['inactive', 'inter1', 'inter2', 'active']
+        names=['inactive', 'inter', 'active']
         for (n,int) in enumerate(combine_inds[sys]):
             if names[n] not in new[sys].keys():
                 new[sys][names[n]]=[]
             for i in int:
-                for val in allscores[sys][i]:
+                for val in all[sys][i]:
                     new[sys][names[n]].append(val)
         for key in names:
             new[sys][key]=numpy.array(new[sys][key])
@@ -177,18 +194,10 @@ def get_fried(data, keys):
     chis=[]
     pvals=[]
     cutoff=20
+    #if len(keys) < 3:
+    #    chi2, pval=wrapper(stats.chisquare, [data[key] for key in keys])
     k_chi2, k_pval=wrapper(stats.mstats.kruskalwallis, [data[key] for key in keys])
     print "kruskal chi2 %s p val %s :" % (k_chi2, k_pval)
-    for x in range(0,10):
-        subsamples=dict()
-        for key in keys:
-            indices=bootstrap( cutoff, len(data[key]))
-            subsamples[key]=data[key][indices]
-        chi2, pval=wrapper(stats.friedmanchisquare, [subsamples[key] for key in keys])
-        chis.append(chi2)
-        pvals.append(pval)
-    print "average chi2 %s+/%s:" % (numpy.mean(chis), numpy.std(chis))
-    print "average pval %s+/-%s:" % (numpy.mean(pvals), numpy.std(pvals))
     return numpy.mean(chis), numpy.std(chis), numpy.mean(pvals), numpy.std(pvals), k_chi2, k_pval
 
 
@@ -241,10 +250,12 @@ def main():
     auclabels['antagonist']='Antagonist'
     auclabels['agonist']='Agonist'
     newscores=dict()
-    allprogress=dict()
+    allscores=dict()
+    allvalues=dict()
     for aucname in aucnames:
+        allscores[aucname]=dict()
+        allvalues[aucname]=dict()
         newscores[aucname]=dict()
-        allprogress[aucname]=dict()
         systems=['bi', 'car', 'apo']
         labels=['Agonist-bound', 'Inv. Agonist-bound', 'Apo']
         auclabels=dict()
@@ -252,10 +263,8 @@ def main():
         auclabels['antagonist']='Antagonist'
         auclabels['agonist']='Agonist'
         formats=['ro', 'bo', 'ko']
-        allvalues=dict()
-        allscores=dict()
         for (sys, label, format) in zip(systems, labels, formats):
-            allscores[sys]=dict()
+            allscores[aucname][sys]=dict()
             dir='./%s/structural-data/' % sys
             pops=numpy.loadtxt('%s/Populations.dat' % dir)
             types=['path', 'new-path']
@@ -301,11 +310,11 @@ def main():
                         if location.size:
                             all_aucs[i].append(aucs[location][0])
                             ops[i].append(score[m])
-                            if score[m] not in allscores[sys].keys():
-                                allscores[sys][score[m]]=[]
-                                allscores[sys][score[m]].append(aucs[location][0])
+                            if score[m] not in allscores[aucname][sys].keys():
+                                allscores[aucname][sys][score[m]]=[]
+                                allscores[aucname][sys][score[m]].append(aucs[location][0])
                             else:
-                                allscores[sys][score[m]].append(aucs[location][0])
+                                allscores[aucname][sys][score[m]].append(aucs[location][0])
                     else:
                         pass
             print "building score hist"
@@ -329,32 +338,51 @@ def main():
             slope, intercept, R, pval, std_err = stats.linregress(scores,  values)
             print sys, "correlation path scores, auc values: ",  R, pval
             #plot_fits(scores, values, R, pval, format, aucname)
-            allvalues[sys]=values
+            allvalues[aucname][sys]=values
         print "Chi2 Test for All Values %s" % aucname
-        chi2, chi2_s, pval, pval_s, k_chi2, k_pval=get_fried(allvalues, systems)
+        if aucname=='types':
+            print "using only ligand data"
+            systems=['bi', 'car']
+        else:
+            systems=['bi', 'car', 'apo']
+        chi2, chi2_s, pval, pval_s, k_chi2, k_pval=get_fried(allvalues[aucname], systems)
         print "on pathway score and AUCS"
         #for sys in systems:
         #    for s in range(1,13):
-        #      not in allscores[sys].keys():
-        #            allscores[sys][s]=0
-        newscores[aucname]=modify_scores(allscores, newscores[aucname])
-    names=['inactive', 'inter1', 'inter2', 'active']
+        #      not in allscores[aucname][sys].keys():
+        #            allscores[aucname][sys][s]=0
+        newscores[aucname]=modify_scores(allscores[aucname], newscores[aucname])
+    import pdb
+    pdb.set_trace()
+    names=['inactive', 'inter', 'active']
     #bar_progress(newscores, auclabels)
+    allprogress=dict()
+    limit=False
     for aucname in aucnames:
         for s in systems:
-            for n in names:
-                for val in newscores[aucname][s][n]:
-                    if n not in allprogress[aucname].keys():
-                        allprogress[aucname][n]=[]
-                    allprogress[aucname][n].append(val)
-            print "%s progress for %s" % (aucname, s)
-            print "Chi2 Test for Ligand Path States %s" % aucname
+            print "Chi2 Test for %s AUCs and %s Path States" % (aucname, s)
             chi2, chi2_s, pval, pval_s, k_chi2, k_pval=get_fried(newscores[aucname][s], names)
-        print "%s progress for all systems" % aucname
-        for key in allprogress[aucname].keys():
-            allprogress[aucname][key]=numpy.array(allprogress[aucname][key])
-        print "Chi2 Test for All Path States %s" % aucname
-        chi2, chi2_s, pval, pval_s, k_chi, k_pval=get_fried(allprogress[aucname], names)
+        ohandle=open('%s_reduced_allvalues.dat' % aucname, 'w')
+        allprogress=dict()
+        if aucname=='types':
+            limit=True
+        else:
+            limit=False
+        allprogress, modscores=get_aggregate(newscores[aucname], allprogress, names, limit)
+        print "Chi2 Test for %s AUCs and All Path Reduced States" % (aucname)
+        for key in sorted(allprogress.keys()):
+            for value in allprogress[key]:
+                ohandle.write('%s\t%s\n' % (key, value)) 
+        chi2, chi2_s, pval, pval_s, k_chi, k_pval=get_fried(allprogress, names)
+
+        ohandle=open('%s_allvalues.dat' % aucname, 'w')
+        allprogress=dict()
+        allprogress, modscores=get_aggregate(allscores[aucname], allprogress, range(1,13), limit)
+        print "Chi2 Test for %s AUCs and All Path States" % (aucname)
+        for key in sorted(allprogress.keys()):
+            for value in allprogress[key]:
+                ohandle.write('%s\t%s\n' % (key, value)) 
+        chi2, chi2_s, pval, pval_s, k_chi, k_pval=get_fried(allprogress, modscores)
 
 if __name__ == "__main__":
     main()
