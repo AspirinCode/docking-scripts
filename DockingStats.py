@@ -1,3 +1,4 @@
+from math import  *
 import random
 import optparse
 import pylab
@@ -18,8 +19,99 @@ params = {'legend.fontsize': 10,
                   'legend.linewidth': 2}
 pylab.rcParams.update(params)
 
-
 # Helper Functions
+
+def ttest_finish(df,t):
+    """Common code between all 3 t-test functions."""
+    prob = stats.distributions.t.sf(numpy.abs(t), df) * 2  # use numpy.abs to get upper tail
+    if t.ndim == 0:
+        t = t[()]
+
+    return t, prob
+
+def ztest(teststat, nullvalue,  se, alpha =0.05, side=0):
+    """
+    Normal test of a sample statistic.
+    Return:
+       pvalue
+       Z test statistic
+       critical value(s)
+
+    Arguments:
+      teststat- test statistic
+      se -    standard error of sample statistic
+      alpha - significance level
+      side  - -1 left-sided test
+             0  double sided test
+             +1 right-sided test
+    """
+    pnorm = stats.norm.cdf
+    qnorm = stats.norm.ppf
+    Ztest = (teststat-nullvalue)/se
+    #print "Ztest=",  Ztest
+    if side ==0:
+       pvalue = pnorm(Ztest)
+       if Ztest > 0.0:
+           pvalue = 1.0 -pvalue
+       pvalue *= 2.0
+       zcrit1 = qnorm(alpha/2)
+       zcrit2 = qnorm(1-alpha/2.0)
+       return pvalue, Ztest, (zcrit1,zcrit2)
+    elif side == -1:
+       pvalue = pnorm(Ztest)
+       zcrit = qnorm(alpha)
+       return pvalue, Ztest, zcrit
+    else:
+       pvalue = 1- pnorm(Ztest)
+       zcrit  = qnorm(1.0-alpha)
+       return pvalue, Ztest, zcrit
+
+def ttest_ind(a, b, axis=0, equal_var=True):
+    a, b, axis = stats._support._chk2_asarray(a, b, axis)
+    v1 = numpy.var(a, axis, ddof=1)
+    v2 = numpy.var(b, axis, ddof=1)
+    n1 = a.shape[axis]
+    n2 = b.shape[axis]
+
+    if (equal_var):
+        df = n1 + n2 - 2
+        svar = ((n1 - 1) * v1 + (n2 - 1) * v2) / float(df)
+        denom = numpy.sqrt(svar * (1.0 / n1 + 1.0 / n2))
+    else:
+        vn1 = v1 / n1
+        vn2 = v2 / n2
+        df = ((vn1 + vn2)**2) / ((vn1**2) / (n1 - 1) + (vn2**2) / (n2 - 1))
+
+        # If df is undefined, variances are zero (assumes n1 > 0 & n2 > 0).
+        # Hence it doesn't matter what df is as long as it's not NaN.
+        df = numpy.where(numpy.isnan(df), 1, df)
+        denom = numpy.sqrt(vn1 + vn2)
+
+    d = numpy.mean(a, axis) - numpy.mean(b, axis)
+    t = numpy.divide(d, denom)
+    t, prob = ttest_finish(df, t)
+
+    return t, prob
+
+def twosampleproptest(x1,  n1,   x2,  n2,  alpha,  side):
+    p1hat = float(x1)/n1
+    p2hat = float(x2)/n2
+    phat = float(x1 +x2)/(n1+n2)
+    #print "p1hat, p2hat",  p1hat,  p2hat
+    samplestat =  p1hat - p2hat
+    se = sqrt(phat*(1.0-phat) * (1.0/n1 + 1.0/n2))
+    print "se %s" % se
+    print "%s-sided" % side
+    return ztest(p2hat, p1hat,  se,  alpha,  side)
+
+def check(data, xtal):
+    count=0
+    for x in data:
+        if x > xtal:
+            count+=1
+    return count
+
+
 
 def wrapper(func, args):
     c, p=func(*args)
@@ -202,4 +294,5 @@ class SystemDock:
                     map[n]=names[n]
         self.reducescores=new
         self.mapscores=map
+
 
