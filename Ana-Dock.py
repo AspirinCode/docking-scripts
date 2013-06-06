@@ -9,9 +9,9 @@ from numpy import linalg
 
 
 def main():
-    keys=['h36', 'conn', 'npxxy', 'bulge']
-    #ligands=['bi', 'car', 'apo']
-    ligands=['bi', 'car']
+    #keys=['h36', 'conn', 'npxxy', 'bulge']
+    keys=[ 'conn',  'bulge']
+    ligands=['bi', 'car', 'apo']
     refpops=numpy.loadtxt('bi/structural-data/Populations.dat')
     refstates=numpy.loadtxt('./bi/bi_agonist_auc_ci.txt', usecols=(0,),
             dtype=int)
@@ -20,9 +20,11 @@ def main():
         print "using only ligand data"
     aucnames=['agonist', 'antagonist', 'types']
     allsystems=dict()
+    allrandom=dict()
     for aucname in aucnames:
         allsystems[aucname]=[]
         for sys in ligands:
+            allrandom[sys]=numpy.loadtxt('./%s/%s_rand_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(1,)
             states=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(0,), dtype=int)
             dir='./%s/structural-data/' % sys
             pops=numpy.loadtxt('%s/Populations.dat' % dir)
@@ -31,6 +33,7 @@ def main():
             frames=numpy.where(pops>= cutoff)[0]
             pops=pops[frames]
             states=states[frames]
+            numpy.savetxt('%s/filter_states.txt' % sys, states)
             aucs=aucs[frames]
             # make system class for AUC
             SD=SystemDock(sys, states, aucs, pops)
@@ -65,8 +68,13 @@ def main():
                 allprogress[score].append(val)
         chi2, pval=chi2_test([allprogress[x] for x in sorted(allprogress.keys())])
         print "Chi2 Test for Path Progress %s AUC" % get_label(aucname), chi2, pval
-        for key in allprogress.keys():
+        randomsample=[]
+        for values in allrandom.values():
+            randomsample.append(values)
+        for key in sorted(allprogress.keys()):
             ohandle.write('%s\t%s\n' % (key, allprogress[key])) 
+            t, pval=ttest_ind(allprogress[key], allrandom data['reference']['avg'],
+            axis=0, equal_var=False)
     #bar_progress(allsystems)
 
 
