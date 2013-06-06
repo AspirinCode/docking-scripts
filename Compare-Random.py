@@ -67,13 +67,19 @@ def main(sys, type):
     for key in counts.keys():
         for level in data['random'].keys():
             if level=='high':
+                #counts[key][level]=check(data[key]['avg'], data['xtal'][level]) #constant xtal
                 counts[key][level]=check(data[key][level], data['xtal']['low']) #opposite level for xtal
+                #counts[key][level]=check(data[key][level], data['xtal']['avg']) # constant avg xtal
                 print "Freq. AUCs > Xtal %s loose criteria: " % key, counts[key][level]
             elif level=='low':
+                #counts[key][level]=check(data[key]['avg'], data['xtal'][level]) #opposite level for xtal
                 counts[key][level]=check(data[key][level], data['xtal']['high']) # strict
+                #counts[key][level]=check(data[key][level], data['xtal']['avg']) # strict
                 print "Freq. AUCs > Xtal %s strict criteria: " % key, counts[key][level]
             elif level=='avg':
+                #counts[key][level]=check(data[key]['avg'], data['xtal'][level]) #opposite level for xtal
                 counts[key][level]=check(data[key][level], data['xtal'][level]) 
+                #counts[key][level]=check(data[key][level], data['xtal']['avg']) 
                 print "Freq. AUCs > Xtal %s average criteria: " % key, counts[key][level]
     side=1
     print "%s-Sided Test" % side
@@ -84,8 +90,14 @@ def main(sys, type):
         print "%s Z= " % level, Ztest, "zcrit= ", zcrit, "pvalue= ", pvalue
     pylab.figure()
     pylab.hold(True)
-    test2=pylab.hist(data['random']['avg'], bins=15, range=[0.7,0.95], color='cyan', label='Random States', normed=True)
-    test=pylab.hist(data['reference']['avg'], bins=15, range=[0.7,0.95], alpha=0.6, color='magenta',  label='MSM States', normed=True)
+    if type=='types':
+        binrange=[0.2, 0.95]
+        binum=30
+    else:
+        binrange=[0.6, 0.95]
+        binum=15
+    test2=pylab.hist(data['random']['avg'], bins=binum, range=binrange, color='cyan', label='Random States', normed=True)
+    test=pylab.hist(data['reference']['avg'], bins=binum, range=binrange, alpha=0.6, color='magenta',  label='MSM States', normed=True)
     maxval=numpy.hstack((test[0], test2[0])).max()
     for x in ['low', 'avg', 'high']:
         if x=='avg':
