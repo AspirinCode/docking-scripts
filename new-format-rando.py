@@ -1,4 +1,3 @@
-#!/bin/python
 import numpy
 import glob
 import optparse
@@ -9,11 +8,18 @@ import operator
 
 
 def main(sys):
-    states=range(1, 14)
-    types=['agonist', ] # 'antagonist']
+    if sys=='apo':
+        target=103
+    if sys=='bi':
+        target=21
+    if sys=='car':
+        target=44
+    states=range(1,target)
+    types=['agonist' , 'antagonist']
     for type in types:
         n=1
         for state in states:
+            all=dict()
             if not os.path.exists('%s/%s-state%s/' % (type, sys, n)):
                 os.mkdir('%s/%s-state%s/' % (type, sys, n))
             print "on %s for %s" % (state, type)
@@ -28,6 +34,7 @@ def main(sys):
             file=open('%s/%s-state%s/ranked-%s-aln-state%s.rand-allligand%s.out' %
                     (type, sys, n, sys, int(state), type))
             stereo=dict()
+            map=dict()
             ligands=[]
             ligandnames=[]
             for line in file.readlines():
@@ -38,15 +45,20 @@ def main(sys):
             ligands=numpy.array(ligands)
             print "start %s ligands" % (len(ligands))
             for (m,x) in enumerate(ligandnames):
-                name=x.split('stereo-')[1].split('.')[0]
+                name=x.split('stereo-')[1].split('-')[0]
                 if name in stereo.keys():
                     if stereo[name]<float(ligands[m]):
                         stereo[name]=float(ligands[m])
+                        map[name]=x.split('_000')[0].split('stereo-')[1]
                     else:
                         pass
                 else:
                     stereo[name]=float(ligands[m])
+                    map[name]=x.split('_000')[0].split('stereo-')[1]
             print "final %s ligands" % (len(stereo.keys()))
+            for x in stereo.keys():
+                all[map[x]]=stereo[x]
+            numpy.savetxt('all_ligands.txt', stereo.keys(), fmt='%s')
             file='%s/ranked-%s-aln-state%s.rand-ligand%s-decoys.out'% (type, sys, int(state), type) 
             if os.path.exists(file):
                 os.system('cp %s %s/%s-state%s/' % (file, type, sys, n))
@@ -55,22 +67,26 @@ def main(sys):
                 import pdb
                 pdb.set_trace()
             file=open('%s/%s-state%s/ranked-%s-aln-state%s.rand-ligand%s-decoys.out' % (type, sys, n, sys, int(state), type))
-            decoys=[]
+            decoys=dict()
             for line in file.readlines():
-                if '::::' not in line:
-                    if '.out' not in line:
-                        if 'could not' not in line:
-                            if len(line.split())>1:
-                                decoys.append(float(line.split()[1]))
-            decoys=numpy.array(decoys)
+                if len(line.split())>1:
+                    name=line.split()[0].split('prot-')[1].split('_000')[0]
+                    decoys[name]=float(line.split()[1])
+                    all[name]=float(line.split()[1])
             ofile=open('unsorted.tmp', 'w')
-            sorted_stereo=reversed(sorted(stereo.iteritems(),
+            sorted_stereo=reversed(sorted(stereo.iteritems(), key=operator.itemgetter(1)))
+            sorted_decoys=reversed(sorted(decoys.iteritems(),
                 key=operator.itemgetter(1)))
             for x in sorted_stereo:
                 ofile.write('1\t%s\n' % x[1])
-            for x in decoys:
-                ofile.write('0\t%s\n' % x)
+            for x in sorted_decoys:
+                ofile.write('0\t%s\n' % x[1])
             ofile.close()
+            sorted_all=reversed(sorted(all.iteritems(),
+                key=operator.itemgetter(1)))
+            num=len(stereo.keys())*0.10
+            count=0
+            sorted_stereo=reversed(sorted(stereo.iteritems(), key=operator.itemgetter(1)))
             os.system('sort -rnk2 unsorted.tmp > %s/%s-state%s/new-fmt-rand-%s.out' %
                     (type, sys, n, type))
             n+=1

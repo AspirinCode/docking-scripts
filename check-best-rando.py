@@ -16,6 +16,9 @@ def main(sys, type ):
     x_aucs=dict()
     x_hici=dict()
     x_lowci=dict()
+    alllowci=dict()
+    allhici=dict()
+    allaucs=dict()
     xtal=['2rh1', '3p0g']
     for state in xtal:
         mfile='../xtal-docking/%s/new-matlab-%s-%s-aucs-95ci.dat' % (ligand, state, ligand)
@@ -29,15 +32,19 @@ def main(sys, type ):
     aucs=dict()
     lowci=dict()
     hici=dict()
-    for state in range(1,10):
+    states=range(1,103)
+    for state in states:
         state=int(state)
         mfile='./%s/new-matlab-rand-%s-%s-%s-aucs-95ci.dat' % (ligand, sys, state, ligand)
         value=numpy.loadtxt(mfile, usecols=(0,))
         aucs[state]=value
+        allaucs[state]=value
         data=numpy.loadtxt(mfile, usecols=(1,))
         lowci[state]=data
+        alllowci[state]=data
         data=numpy.loadtxt(mfile, usecols=(2,))
         hici[state]=data
+        allhici[state]=data
     for x in sorted(aucs.keys()):
         if type=='agonist':
             state='3p0g'
@@ -53,15 +60,11 @@ def main(sys, type ):
             pass
     print "CI best %s AUCs" % len(ci_best_aucs.keys())
     print "not-CI best %s AUCs" % len(best_aucs.keys())
-    #print sorted(ci_best_aucs.iteritems(),key=operator.itemgetter(1))[::-1]
-    ohandle=open('%s_rand_aucs.txt' % sys, 'w')
-    for x in sorted(aucs.keys()):
-        ohandle.write('%s\t%s\n' % (x, aucs[x]))
-    #best=[]
-    #for j in set([x[1][1] for x in sorted(ci_best_aucs.iteritems(),
-    #    key=operator.itemgetter(1))]):
-    #    best.append(int(j))
-    #numpy.savetxt('ci_best_aucs.txt', numpy.array(best), fmt='%i')
+    ohandle=open('apo_rando_%s_auc_ci.txt' % type, 'w')
+    for key in sorted(allaucs.keys()):
+        ohandle.write('%s\t%s\t%s\t%s\n' % (key, allaucs[key], alllowci[key],
+            allhici[key]))
+
     
 def parse_commandline():
     parser = optparse.OptionParser()

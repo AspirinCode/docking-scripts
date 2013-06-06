@@ -91,10 +91,10 @@ def main(sys, type):
     pylab.figure()
     pylab.hold(True)
     if type=='types':
-        binrange=[0.2, 0.95]
-        binum=30
+        binrange=[0.2, 1.00]
+        binum=20
     else:
-        binrange=[0.6, 0.95]
+        binrange=[0.6, 1.00]
         binum=15
     test2=pylab.hist(data['random']['avg'], bins=binum, range=binrange, color='cyan', label='Random States', normed=True)
     test=pylab.hist(data['reference']['avg'], bins=binum, range=binrange, alpha=0.6, color='magenta',  label='MSM States', normed=True)
@@ -107,11 +107,14 @@ def main(sys, type):
         else:
             format='k--'
         pylab.plot([data['xtal'][x]]*(int(maxval)+2), range(0, int(maxval)+2), format)
-    pylab.ylim(0, maxval+1)
+    if type=='types':
+        pylab.plot([0.5]*(int(maxval)+2), range(0, int(maxval)+2), 'k-.')
+    pylab.ylim(0, maxval)
     pylab.legend()
-    pylab.xlabel('Docking Performance AUC')
+    pylab.xlabel('%s AUC' % get_label(type))
     pylab.ylabel('Normed Probability')
-    pylab.savefig('compare-rand.png', dpi=300)
+    pylab.title('%s MSM vs. Random States' % get_label(sys))
+    pylab.savefig('compare-%s-%s-rand.png' % (sys, type), dpi=300)
     pylab.show()
     
     

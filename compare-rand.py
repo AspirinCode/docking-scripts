@@ -106,13 +106,6 @@ def check(data, xtal):
     return count
 
 def main(sys, type):
-    xtal_low=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' %
-        (type, type), usecols=(1,))
-    xtal_hi=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' %
-        (type, type) ,usecols=(2,))
-    xtal_auc=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' %
-        (type, type),
-            usecols=(0,))
     states=numpy.loadtxt('%s_%s_auc_ci.txt' % (sys, type), usecols=(0,))
     filter=numpy.loadtxt('filter_states.txt')
     new=[]
@@ -123,21 +116,9 @@ def main(sys, type):
 
     reference=dict()
     random=dict()
-    xtal=dict()
-    names=['%s_%s_auc_ci.txt' % (sys, type), '%s_rando_%s_auc_ci.txt' % (sys,
-        type), '../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type,
-            type)]  
-    for (prefix, d) in zip(names, [reference, random, xtal]):
-        if 'xtal' in prefix:
-            n=0
-        else:
-            n=1
-        d['avg']=numpy.loadtxt(name, usecols=(n,))
-        n+=1
-        d['low']=numpy.loadtxt(name, usecols=(n,))
-        n+=1
-        d['high']=numpy.loadtxt(name, usecols=(,))
-
+    xtal_auc=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type), usecols=(0,))
+    xtal_low=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type), usecols=(1,))
+    xtal_hi=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type), usecols=(2,))
     ref=numpy.loadtxt('%s_%s_auc_ci.txt' % (sys, type), usecols=(1,))
     ref=ref[new]
     ref_low=numpy.loadtxt('%s_%s_auc_ci.txt' % (sys, type), usecols=(2,))
@@ -159,11 +140,6 @@ def main(sys, type):
     print "population difference chi2= ", chi2, "pval= ", pval
     
     #statistical tests of difference in proportion states < xtal
-    counts=dict()
-    counts['rand']=dict()
-    counts['rand']['strict']=
-    for key in counts.keys():
-        counts[key]['strict']=check(random['avg'], xtal['avg'])
     rand_count=check(rand, xtal_auc)
     rand_count_loose=check(rand_hi, xtal_low)
     print "%s Random State AUCs > Xtal AUC" % rand_count
