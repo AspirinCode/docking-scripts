@@ -18,7 +18,7 @@ pylab.rcParams.update(params)
 
 
 
-def main(sys, type):
+def main(sys, type, target=False):
     states=numpy.loadtxt('%s/%s_%s_auc_ci.txt' % (sys, sys, type), usecols=(0,))
     filter=numpy.loadtxt('%s/filter_states.txt' % sys)
     new=[]
@@ -125,11 +125,16 @@ def parse_commandline():
                       help='system')
     parser.add_option('-t', '--type', dest='type',
                       help='type')
+    parser.add_option('-g', '--target', dest='target',
+                action="store_true", default=False, help='use target info')
     (options, args) = parser.parse_args()
     return (options, args)
 
 if __name__ == "__main__":
     (options, args) = parse_commandline()
-    main(sys=options.sys, type=options.type)
+    if options.target==True:
+        main(sys=options.sys, type=options.type, target=True)
+    else:
+        main(sys=options.sys, type=options.type)
 
     

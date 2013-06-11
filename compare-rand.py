@@ -119,11 +119,11 @@ def main(sys, type):
     xtal_auc=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type), usecols=(0,))
     xtal_low=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type), usecols=(1,))
     xtal_hi=numpy.loadtxt('../xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type), usecols=(2,))
-    ref=numpy.loadtxt('%s_%s_auc_ci.txt' % (sys, type), usecols=(1,))
+    ref=numpy.loadtxt('%s_targ_%s_auc_ci.txt' % (sys, type), usecols=(1,))
     ref=ref[new]
-    ref_low=numpy.loadtxt('%s_%s_auc_ci.txt' % (sys, type), usecols=(2,))
+    ref_low=numpy.loadtxt('%s_targ_%s_auc_ci.txt' % (sys, type), usecols=(2,))
     ref_low=ref_low[new]
-    ref_hi=numpy.loadtxt('%s_%s_auc_ci.txt' % (sys, type), usecols=(3,))
+    ref_hi=numpy.loadtxt('%s_targ_%s_auc_ci.txt' % (sys, type), usecols=(3,))
     ref_hi=ref_hi[new]
     rand=numpy.loadtxt('%s_rando_%s_auc_ci.txt' % (sys, type), usecols=(1,))
     rand=rand[:len(ref)]
@@ -161,7 +161,7 @@ def main(sys, type):
     pylab.legend()
     pylab.xlabel('Docking Performance AUC')
     pylab.ylabel('Normed Probability')
-    pylab.savefig('compare-rand.png', dpi=300)
+    pylab.savefig('compare-targ-rand.png', dpi=300)
     pylab.show()
     
     

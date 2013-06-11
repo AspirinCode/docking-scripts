@@ -20,6 +20,13 @@ params = {'legend.fontsize': 10,
 pylab.rcParams.update(params)
 
 # Helper Functions
+def bootstrap( b, n ):
+    """
+    Randomly divide n data points into b blocks.
+    """
+    s = [ random.randint( 0, n-1 ) for t in xrange(0, b) ]
+    return s
+
 
 def ttest_finish(df,t):
     """Common code between all 3 t-test functions."""

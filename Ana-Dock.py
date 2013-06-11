@@ -24,7 +24,7 @@ def main():
     for aucname in aucnames:
         allsystems[aucname]=[]
         for sys in ligands:
-            allrandom[sys]=numpy.loadtxt('./%s/%s_rand_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(1,)
+            allrandom[sys]=numpy.loadtxt('./%s/%s_rando_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(1,))
             states=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(0,), dtype=int)
             dir='./%s/structural-data/' % sys
             pops=numpy.loadtxt('%s/Populations.dat' % dir)
@@ -70,11 +70,18 @@ def main():
         print "Chi2 Test for Path Progress %s AUC" % get_label(aucname), chi2, pval
         randomsample=[]
         for values in allrandom.values():
-            randomsample.append(values)
+            for i in values:
+                randomsample.append(i)
+        randomsample=numpy.array(randomsample)
         for key in sorted(allprogress.keys()):
             ohandle.write('%s\t%s\n' % (key, allprogress[key])) 
-            t, pval=ttest_ind(allprogress[key], allrandom data['reference']['avg'],
+            indices=bootstrap(len(randomsample), len(allprogress[key]))
+            print "random mean= ", numpy.mean(randomsample[indices]),  "Path %s mean= " % key, numpy.mean(allprogress[key])
+            print "random variance= ", numpy.var(randomsample[indices]),  "Path %s variance= " % key, numpy.var(allprogress[key])
+            t, pval=ttest_ind(allprogress[key], randomsample[indices],
             axis=0, equal_var=False)
+            print "Path %s population difference t= " % key, t, "pval= ", pval
+
     #bar_progress(allsystems)
 
 
