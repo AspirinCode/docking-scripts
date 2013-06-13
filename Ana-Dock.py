@@ -8,12 +8,11 @@ from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 from numpy import linalg
 
 
-def main():
-    #keys=['h36', 'conn', 'npxxy', 'bulge']
-    keys=[ 'conn',  'bulge']
+def main(refname): 
+    keys=['h36', 'conn', 'npxxy', 'bulge']
     ligands=['bi', 'car', 'apo']
-    refpops=numpy.loadtxt('bi/structural-data/Populations.dat')
-    refstates=numpy.loadtxt('./bi/bi_agonist_auc_ci.txt', usecols=(0,),
+    refpops=numpy.loadtxt('bi/cent-structural-data/Populations.dat')
+    refstates=numpy.loadtxt('./bi/bi_cent_agonist_auc_ci.txt', usecols=(0,),
             dtype=int)
     cutoff=min(refpops[refstates])
     if len(ligands) < 3:
@@ -25,10 +24,10 @@ def main():
         allsystems[aucname]=[]
         for sys in ligands:
             allrandom[sys]=numpy.loadtxt('./%s/%s_rando_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(1,))
-            states=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(0,), dtype=int)
-            dir='./%s/structural-data/' % sys
+            states=numpy.loadtxt('./%s/%s_%s_%s_auc_ci.txt' % (sys, sys, refname, aucname), usecols=(0,), dtype=int)
+            dir='./%s/cent-structural-data/' % sys
             pops=numpy.loadtxt('%s/Populations.dat' % dir)
-            aucs=numpy.loadtxt('./%s/%s_%s_auc_ci.txt' % (sys, sys, aucname), usecols=(1,))
+            aucs=numpy.loadtxt('./%s/%s_%s_%s_auc_ci.txt' % (sys, sys, refname, aucname), usecols=(1,))
             pops=pops[states]
             frames=numpy.where(pops>= cutoff)[0]
             pops=pops[frames]
@@ -82,9 +81,18 @@ def main():
             axis=0, equal_var=False)
             print "Path %s population difference t= " % key, t, "pval= ", pval
 
-    #bar_progress(allsystems)
 
+def parse_commandline():
+    parser = optparse.OptionParser()
+    parser.add_option('-r', '--refname', dest='refname',
+                      help='refname AUC set')
+    #parser.add_option('-x', '--testname', dest='testname',
+    #                  help='test AUC set')
+    (options, args) = parser.parse_args()
+    return (options, args)
 
 if __name__ == "__main__":
-    main()
+    (options, args) = parse_commandline()
+    main(refname=options.refname)
+
 
