@@ -111,11 +111,15 @@ def twosampleproptest(x1,  n1,   x2,  n2,  alpha,  side):
     print "%s-sided" % side
     return ztest(p2hat, p1hat,  se,  alpha,  side)
 
-def check(data, xtal):
+def check(data, xtal, side):
     count=0
     for x in data:
-        if x > xtal:
-            count+=1
+        if side==1:
+            if x >= xtal:
+                count+=1
+        elif side<1:
+            if x <= xtal:
+                count+=1
     return count
 
 
@@ -178,6 +182,14 @@ def get_label(name):
         label='Inv. Agonist bound'
     elif name=='apo':
         label='Apo'
+    elif name=='rando':
+        label='Random'
+    elif name=='targ':
+        label='MSM Ensemble'
+    elif name=='cent':
+        label='MSM Centroid'
+    elif name=='shaw':
+        label='Shaw Random'
     return label
 
 

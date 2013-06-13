@@ -33,8 +33,18 @@ def main(sys, type, refname, testname):
     data['reference']=dict()
     data['test']=dict()
     data['xtal']=dict()
+    if type=='types':
+        if sys=='bi':
+            crystal='3p0g'
+            side=1
+        elif sys=='car':
+            crystal='2rh1'
+            side=0
+    else:
+        crystal='3p0g'
+        side=1
     names=['%s/%s_%s_%s_auc_ci.txt' % (sys, sys, refname, type),
-            '%s/%s_%s_%s_auc_ci.txt' % (sys, sys, testname, type), 'xtal-docking/%s/new-matlab-3p0g-%s-aucs-95ci.dat' % (type, type)]  
+            '%s/%s_%s_%s_auc_ci.txt' % (sys, sys, testname, type), 'xtal-docking/%s/new-matlab-%s-%s-aucs-95ci.dat' % (type, crystal, type)]  
     for (key, name) in zip(['reference', 'test', 'xtal'], names):
         d=data[key]
         if 'xtal' in name:
@@ -45,23 +55,32 @@ def main(sys, type, refname, testname):
             n=1
         d['avg']=numpy.loadtxt(name, usecols=(n,))
         if filter==True:
-            d['avg']=d['avg'][new]
+            if max(new) >= len(d['avg']):
+                d['avg']=d['avg'][:len(new)]
+            else:
+                d['avg']=d['avg'][new]
         n+=1
         d['low']=numpy.loadtxt(name, usecols=(n,))
         if filter==True:
-            d['low']=d['low'][new]
+            if max(new) >= len(d['low']):
+                d['low']=d['avg'][:len(new)]
+            else:
+                d['low']=d['low'][new]
         n+=1
         d['high']=numpy.loadtxt(name, usecols=(n,))
         if filter==True:
-            d['high']=d['high'][new]
-
+            if max(new) >= len(d['high']):
+                d['high']=d['high'][:len(new)]
+            else:
+                d['high']=d['high'][new]
     print "%s mean= " % testlabel, numpy.mean(data['test']['avg']), "%s mean= " % reflabel, numpy.mean(data['reference']['avg'])
     print "%s variance= " % testlabel, numpy.var(data['test']['avg']), "%s variance= " % reflabel, numpy.var(data['reference']['avg'])
     #statistical tests of difference in population
     t, pval=ttest_ind(data['test']['avg'], data['reference']['avg'], axis=0, equal_var=False)
     print "population difference t= ", t, "pval= ", pval
-    chi2, pval=stat.stats.chisquare(data['reference']['avg'], data['test']['avg'])
-    print "population difference chi2= ", chi2, "pval= ", pval
+    if len(data['reference']['avg'])==len(data['test']['avg']):
+        chi2, pval=stat.stats.chisquare(data['reference']['avg'], data['test']['avg'])
+        print "population difference chi2= ", chi2, "pval= ", pval
     
     #statistical tests of difference in proportion states < xtal
     counts=dict()
@@ -71,24 +90,37 @@ def main(sys, type, refname, testname):
         for level in data['test'].keys():
             if level=='high':
                 #counts[key][level]=check(data[key]['avg'], data['xtal'][level]) #constant xtal
-                counts[key][level]=check(data[key][level], data['xtal']['low']) #opposite level for xtal
+                counts[key][level]=check(data[key][level], data['xtal']['low'],
+                        side) #opposite level for xtal
                 #counts[key][level]=check(data[key][level], data['xtal']['avg']) # constant avg xtal
-                print "Freq. AUCs > Xtal %s loose criteria: " % key, counts[key][level]
+                if side==1:
+                    print "Freq. AUCs > Xtal %s loose criteria: " % key, counts[key][level]
+                elif side<1:
+                    print "Freq. AUCs < Xtal %s loose criteria: " % key, counts[key][level]
             elif level=='low':
                 #counts[key][level]=check(data[key]['avg'], data['xtal'][level]) #opposite level for xtal
-                counts[key][level]=check(data[key][level], data['xtal']['high']) # strict
+                counts[key][level]=check(data[key][level], data['xtal']['high'],
+                        side) # strict
                 #counts[key][level]=check(data[key][level], data['xtal']['avg']) # strict
-                print "Freq. AUCs > Xtal %s strict criteria: " % key, counts[key][level]
+                if side==1:
+                    print "Freq. AUCs > Xtal %s strict criteria: " % key, counts[key][level]
+                if side<1:
+                    print "Freq. AUCs < Xtal %s strict criteria: " % key, counts[key][level]
             elif level=='avg':
                 #counts[key][level]=check(data[key]['avg'], data['xtal'][level]) #opposite level for xtal
-                counts[key][level]=check(data[key][level], data['xtal'][level]) 
+                counts[key][level]=check(data[key][level], data['xtal'][level],
+                        side) 
                 #counts[key][level]=check(data[key][level], data['xtal']['avg']) 
-                print "Freq. AUCs > Xtal %s average criteria: " % key, counts[key][level]
-    side=1
+                if side==1:
+                    print "Freq. AUCs > Xtal %s average criteria: " % key, counts[key][level]
+                elif side<1:
+                    print "Freq. AUCs < Xtal %s average criteria: " % key, counts[key][level]
     print "%s-Sided Test" % side
     for (level, c) in zip(['strict', 'avg', 'loose'], ['low', 'avg', 'high']):
-        pvalue, Ztest, zcrit=twosampleproptest(counts['test'][c], len(data['test'][c]),
-                counts['reference'][c], len(data['reference'][c]),
+        #pvalue, Ztest, zcrit=twosampleproptest(counts['test'][c], len(data['test'][c]),
+        pvalue, Ztest, zcrit=twosampleproptest(counts['reference'][c],
+            len(data['reference'][c]),
+                counts['test'][c], len(data['test'][c]),
                 alpha=0.05,  side=side)
         print "%s Z= " % level, Ztest, "zcrit= ", zcrit, "pvalue= ", pvalue
     pylab.figure()
@@ -101,7 +133,8 @@ def main(sys, type, refname, testname):
         binum=15
     test2=pylab.hist(data['test']['avg'], bins=binum, range=binrange,
             color='cyan', label='%s States' % testlabel, normed=True)
-    test=pylab.hist(data['reference']['avg'], bins=binum, range=binrange, alpha=0.6, color='magenta',  label='MSM States', normed=True)
+    test=pylab.hist(data['reference']['avg'], bins=binum, range=binrange,
+            alpha=0.6, color='magenta',  label='%s States' % reflabel, normed=True)
     maxval=numpy.hstack((test[0], test2[0])).max()
     for x in ['low', 'avg', 'high']:
         if x=='avg':
@@ -114,11 +147,13 @@ def main(sys, type, refname, testname):
     if type=='types':
         pylab.plot([0.5]*(int(maxval)+2), range(0, int(maxval)+2), 'k-.')
     pylab.ylim(0, maxval)
-    pylab.legend()
+    lg=pylab.legend(loc=2)
+    lg.draw_frame(False)
     pylab.xlabel('%s AUC' % get_label(type))
     pylab.ylabel('Normed Probability')
     pylab.title('%s %s vs. %s States' % (get_label(sys), reflabel, testlabel))
-    pylab.savefig('compare-%s-%s-rand.png' % (sys, type), dpi=300)
+    pylab.savefig('compare-%s-%s-ref%s-test%s.png' % (sys, type, refname,
+        testname), dpi=300)
     pylab.show()
     
     
