@@ -20,7 +20,7 @@ params = {'legend.fontsize': 14,
           'legend.linewidth': 2}
 pylab.rcParams.update(params)
 
-def main(name):
+def main(refname, keynumber):
     systems=['bi', 'car', 'apo']
     auclabels=dict()
     auclabels['types']='Agonist vs.\n Antag.'
@@ -32,7 +32,7 @@ def main(name):
     allvalues=dict()
     ranges=dict()
     index=0
-    fig=pylab.figure(figsize=(8,6))
+    fig=pylab.figure(figsize=(9,7))
     gs=gridspec.GridSpec(1, 2, width_ratios=[2,1])
     ax1=pylab.subplot(gs[0] )
     ax2=pylab.subplot(gs[1])
@@ -40,23 +40,27 @@ def main(name):
         print "on %s" % aucname
         allvalues[aucname]=dict()
         start=index
-        fhandle=open('%s_%svalues.dat' % (aucname, name))
+        file='%s_%s_all%svalues.dat' % (aucname, refname, keynumber)
+        os.system('sed "s/\[//g"  < %s |  sed "s/\]//g" | sed "s/,//g" > mod-%s'
+                % (file, file))
+        fhandle=open('mod-%s' % file)
         for line in fhandle.readlines():
-            key=line.split()[0]
-            value=float(line.split()[1])
-            try:
-                test=int(key)
-                if test in allvalues[aucname].keys():
-                    allvalues[aucname][test].append(value)
-                else:
-                    allvalues[aucname][test]=[]
-                    allvalues[aucname][test].append(value)
-            except ValueError:
-                if key in allvalues[aucname].keys():
-                    allvalues[aucname][key].append(value)
-                else:
-                    allvalues[aucname][key]=[]
-                    allvalues[aucname][key].append(value)
+            key=float(line.split()[0])
+            for value in line.split()[1:]:
+                value=float(value)
+                try:
+                    test=int(key)
+                    if test in allvalues[aucname].keys():
+                        allvalues[aucname][test].append(value)
+                    else:
+                        allvalues[aucname][test]=[]
+                        allvalues[aucname][test].append(value)
+                except ValueError:
+                    if key in allvalues[aucname].keys():
+                        allvalues[aucname][key].append(value)
+                    else:
+                        allvalues[aucname][key]=[]
+                        allvalues[aucname][key].append(value)
         print "loaded file data"
         avgs=[]
         errs=[]
@@ -81,8 +85,8 @@ def main(name):
     ax1.set_ylabel('AUCs')
     ax1.set_xlabel('States Along Path')
     ax1.xaxis.set_ticks(numpy.arange(0,length))
-    labels=[' ', ' ', 'Inactive', '', '',  '', ' ', 'Active']
-    labels2=[' ', ' ', ' ', 'Inactive', '',  '', ' ', '      Active']
+    labels=[' ', ' ', 'Inactive', '', '',  '', ' ', '   Active']
+    labels2=[' ', ' ', '    ', '     Inactive', '',  '', ' ', '                Active']
     ax1.xaxis.set_ticklabels(labels+labels2)
     ax1.yaxis.set_ticks(numpy.arange(0.6, 1.05, 0.1))
     lg=ax1.legend(loc=9)
@@ -108,17 +112,23 @@ def main(name):
     #ax2.xaxis.set_ticks(range(0, 3))
     #ax2.xaxis.set_ticklabels(['   ', auclabels[aucnames[2]], ' '])
     #pylab.savefig('ligand_state_aucs.png', dpi=300)
-    pylab.savefig('all_progress_aucs.png', dpi=300)
+    pylab.savefig('all_progress_%s_aucs_op%s.png' % (refname, keynumber), dpi=300)
     pylab.show()
+
 
 def parse_commandline():
     parser = optparse.OptionParser()
-    parser.add_option('-n', '--name', dest='name',
-                      help='name')
+    parser.add_option('-r', '--refname', dest='refname',
+                      help='refname allvalues AUC set')
+    parser.add_option('-k', '--keynumber', dest='keynumber',
+                      help='# OPs (1- bulge, 2 - conn, 3 - npxxy, 4 - h36')
+    #parser.add_option('-x', '--testname', dest='testname',
+    #                  help='test AUC set')
     (options, args) = parser.parse_args()
     return (options, args)
 
 if __name__ == "__main__":
     (options, args) = parse_commandline()
-    main(name=options.name)
+    main(refname=options.refname, keynumber=options.keynumber)
+
 

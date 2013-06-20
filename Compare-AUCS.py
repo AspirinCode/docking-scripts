@@ -34,12 +34,12 @@ def main(sys, type, refname, testname):
     data['test']=dict()
     data['xtal']=dict()
     if type=='types':
-        if sys=='bi':
-            crystal='3p0g'
-            side=1
-        elif sys=='car':
+        if sys=='car':
             crystal='2rh1'
             side=0
+        else:
+            crystal='3p0g'
+            side=1
     else:
         crystal='3p0g'
         side=1
@@ -117,11 +117,10 @@ def main(sys, type, refname, testname):
                     print "Freq. AUCs < Xtal %s average criteria: " % key, counts[key][level]
     print "%s-Sided Test" % side
     for (level, c) in zip(['strict', 'avg', 'loose'], ['low', 'avg', 'high']):
-        #pvalue, Ztest, zcrit=twosampleproptest(counts['test'][c], len(data['test'][c]),
-        pvalue, Ztest, zcrit=twosampleproptest(counts['reference'][c],
-            len(data['reference'][c]),
-                counts['test'][c], len(data['test'][c]),
-                alpha=0.05,  side=side)
+        #pvalue, Ztest, zcrit=twosampleproptest(counts['reference'][c],
+        #    len(data['reference'][c]),
+        pvalue, Ztest, zcrit=twosampleproptest(counts['test'][c], len(data['test'][c]),
+                counts['reference'][c], len(data['reference'][c]), alpha=0.05,  side=side)
         print "%s Z= " % level, Ztest, "zcrit= ", zcrit, "pvalue= ", pvalue
     pylab.figure()
     pylab.hold(True)
