@@ -160,8 +160,12 @@ def get_ref_scores(keys):
 def op_path(op, name, op_scores, score):
     test=sorted(op_scores[name].keys())
     for (n, x) in enumerate(op):
+        x=round(x)
         for (m, i) in enumerate(test):
-            if x >= test[m]:
+            if x <=test[0]:
+                score[n]+=op_scores[name][test[0]]
+                break
+            elif x >= test[m]:
                 if (m+1) >= len(test):
                     score[n]+=op_scores[name][i]
                 elif x < test[m+1]:
@@ -230,7 +234,7 @@ def scatter_fits(sys, scores, values, R, pval, aucname, show=False):
 
 # Class for AUC Data
 class SystemDock:
-    def __init__(self, ligand, states, aucs, pops):
+    def __init__(self, ligand, states, aucs=None, pops=None):
         self.ligand=ligand
         self.aucs = aucs
         self.states = states
@@ -258,36 +262,39 @@ class SystemDock:
             frames=[]
             for (n, state) in enumerate(path):
                 if int(state) in self.states:
-                    frames.append((n-1))
+                    frames.append(n)
             frames=numpy.array(frames)
-            path_ops=dict()
-            for key in keys:
-                if key=='h36':
-                    path_ops[key]=numpy.loadtxt('%s/path%s.%s.dat' % (dir, i, key))
-                    path_ops[key]=path_ops[key][frames]
-                elif key=='npxxy':
-                    path_ops[key]=numpy.loadtxt('%s/inactive-%s-path%s.dat' % (dir, key, i))
-                    path_ops[key]=path_ops[key][frames]
-                elif key=='conn':
-                    path_ops[key]=numpy.loadtxt('%s/active-%s-path%s.dat' % (dir, key, i))
-                    path_ops[key]=path_ops[key][frames]
-                elif key=='bulge':
-                    path_ops[key]=numpy.loadtxt('%s/active-h5buldge-path%s.dat' % (dir, i))
-                    path_ops[key]=path_ops[key][frames]
-            score=numpy.zeros(len(path[frames]))
-            for key in keys:
-               score=op_path(path_ops[key], key, op_scores, score)
-            for (i, state) in enumerate(path[frames]):
-                location=numpy.where(self.states==int(state))[0]
-                if statescores[location]!=0:
-                    if statescores[location]!=score[i]:
-                        print "problem wiht scoring"
-                        import pdb
-                        pdb.set_trace()
+            if not frames.size:
+                continue
+            else:
+                path_ops=dict()
+                for key in keys:
+                    if key=='h36':
+                        path_ops[key]=numpy.loadtxt('%s/path%s.%s.dat' % (dir, i, key))
+                        path_ops[key]=path_ops[key][frames]
+                    elif key=='npxxy':
+                        path_ops[key]=numpy.loadtxt('%s/inactive-%s-path%s.dat' % (dir, key, i))
+                        path_ops[key]=path_ops[key][frames]
+                    elif key=='conn':
+                        path_ops[key]=numpy.loadtxt('%s/active-%s-path%s.dat' % (dir, key, i))
+                        path_ops[key]=path_ops[key][frames]
+                    elif key=='bulge':
+                        path_ops[key]=numpy.loadtxt('%s/active-h5buldge-path%s.dat' % (dir, i))
+                        path_ops[key]=path_ops[key][frames]
+                score=numpy.zeros(len(path[frames]))
+                for key in keys:
+                    score=op_path(path_ops[key], key, op_scores, score)
+                for (i, state) in enumerate(path[frames]):
+                    location=numpy.where(self.states==int(state))[0]
+                    if statescores[location]!=0:
+                        if statescores[location]!=score[i]:
+                            print "problem wiht scoring"
+                            import pdb
+                            pdb.set_trace()
+                        else:
+                            statescores[location]=score[i]
                     else:
                         statescores[location]=score[i]
-                else:
-                    statescores[location]=score[i]
         self.pathscores=statescores 
 
     def modify_scores(self, length):

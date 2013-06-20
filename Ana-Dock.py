@@ -8,12 +8,14 @@ from scipy import linspace, polyval, polyfit, sqrt, stats, randn
 from numpy import linalg
 
 
-def main(refname, testname, keynumber): 
+def main(refname, ligandname, testname, keynumber): 
     keys=['h36', 'conn', 'npxxy', 'bulge']
     keys=keys[:int(keynumber)]
     print "Using OP's :", keys
-    ligands=['bi',  'car', 'apo']
-    #ligands=[ 'apo', ]
+    if ligandname=='all':
+        ligands=['bi',  'car', 'apo']
+    else:
+        ligands=[ ligandname, ]
     refpops=numpy.loadtxt('bi/cent-structural-data/Populations.dat')
     refstates=numpy.loadtxt('./bi/bi_cent_agonist_auc_ci.txt', usecols=(0,),
             dtype=int)
@@ -76,8 +78,8 @@ def main(refname, testname, keynumber):
             else:
                 target=system.pathscores
             for (score, val) in zip(target, system.aucs):
-                if score>=9:
-                    score=9.0
+                #if score>=9:
+                #    score=9.0
                 if score not in allprogress.keys():
                     allprogress[score]=[]
                 allprogress[score].append(val)
@@ -105,6 +107,8 @@ def parse_commandline():
     parser = optparse.OptionParser()
     parser.add_option('-r', '--refname', dest='refname',
                       help='refname AUC set')
+    parser.add_option('-l', '--ligandname', dest='ligandname',
+                        help='ligand or all')
     parser.add_option('-x', '--testname', dest='testname',
                       help='test AUC set')
     parser.add_option('-k', '--keynumber', dest='keynumber',
@@ -114,5 +118,5 @@ def parse_commandline():
 
 if __name__ == "__main__":
     (options, args) = parse_commandline()
-    main(refname=options.refname, testname=options.testname,
+    main(refname=options.refname, ligandname=options.ligandname, testname=options.testname,
         keynumber=options.keynumber)
